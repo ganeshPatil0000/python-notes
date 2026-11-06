@@ -276,6 +276,172 @@ Type `python` in the terminal and test code line by line:
 
 ---
 
+## How Python Code Runs (Execution Flow)
+
+When you type `python hello.py`, Python does **not** run your text directly. It goes through these steps inside **CPython** (the default Python you download from python.org):
+
+### Execution flow diagram
+```mermaid
+flowchart TD
+    A["📝 Source code<br/>hello.py"]
+
+    subgraph PY["🐍 python.exe = The Python Interpreter (CPython)"]
+        subgraph COMP["⚙️ COMPILER part (compile time)"]
+            B["🔤 Tokenizer (Lexer)<br/>splits code into tokens"]
+            C["🌳 Parser<br/>builds AST (Abstract Syntax Tree)"]
+            D["⚙️ Compiler<br/>converts AST into bytecode"]
+        end
+        E["📦 Bytecode<br/>saved as .pyc in __pycache__<br/>(only for imported modules)"]
+        subgraph INT["▶️ INTERPRETER part (run time)"]
+            F["🖥️ PVM (Python Virtual Machine)<br/>runs bytecode one instruction at a time"]
+        end
+    end
+
+    L["📚 Imported modules<br/>and libraries"]
+    G["✅ Output"]
+    X["❌ SyntaxError<br/>program does not start"]
+    Y["❌ Runtime error<br/>TypeError, NameError, ..."]
+
+    A --> B --> C --> D --> E --> F --> G
+    L --> F
+    C -. "mistake in syntax" .-> X
+    F -. "mistake while running" .-> Y
+```
+
+### Short version (easy to remember)
+```
+ .py file ──> Tokenizer ──> Parser (AST) ──> Compiler ──> Bytecode (.pyc) ──> PVM ──> Output
+ └────────────── compile time ──────────────────────────────┘   └── run time ──┘
+```
+
+### Each step explained
+| Step | What happens | Who does it |
+|---|---|---|
+| **1. Source code** | You write `hello.py` in plain text. | You |
+| **2. Tokenizer** | Breaks the text into small pieces called **tokens**: names, numbers, operators. | Python, automatically |
+| **3. Parser** | Checks the grammar and builds a tree called the **AST**. A `SyntaxError` is raised here, so the program does not start at all. | Python, automatically |
+| **4. Compiler** | Turns the AST into **bytecode**: simple low-level instructions for the PVM. Not machine code. | Python, automatically |
+| **5. .pyc file** | Bytecode of **imported** modules is saved in the `__pycache__` folder, so the next run is faster (Python skips steps 2–4 if the file did not change). | Python, automatically |
+| **6. PVM** | The Python Virtual Machine reads bytecode instructions one by one and executes them. Runtime errors (`TypeError`, `NameError`, `ZeroDivisionError`) happen here. | Python, automatically |
+| **7. Output** | You see the result. | — |
+
+### Where are the Compiler and the Interpreter?
+When people say **"the Python interpreter"**, they mean the whole program `python.exe` (CPython). That **one program has two parts inside it**:
+
+```
+                  python.exe  =  "The Python Interpreter" (CPython)
+┌────────────────────────────────────────────────────────────────────────────┐
+│                                                                            │
+│   ┌──────────── COMPILER part ─────────────┐   ┌──── INTERPRETER part ───┐ │
+│   │                                         │   │                         │ │
+│   │  Tokenizer ──> Parser ──> Compiler ─────┼──>│  PVM runs the bytecode  │ │
+│   │                (AST)      (bytecode)    │   │  instruction by         │ │
+│   │                                         │   │  instruction            │ │
+│   └─────────────────────────────────────────┘   └─────────────────────────┘ │
+│                                                                            │
+└────────────────────────────────────────────────────────────────────────────┘
+   hello.py goes in ───────────────────────────────────────────> output comes out
+```
+
+- **Compiler part** = Tokenizer + Parser + Compiler. It converts `.py` code into **bytecode**. It does **not** make machine code like a C compiler does.
+- **Interpreter part** = the **PVM**. It reads the bytecode one instruction at a time and runs it. This is why Python is called an "interpreted language".
+
+### Python vs C vs Java
+| Language | Compile step | Run step |
+|---|---|---|
+| **C / C++** | Compiler → **machine code** (`.exe`), done before running | CPU runs it directly |
+| **Java** | `javac` → bytecode (`.class`), a step **you** run | JVM runs it |
+| **Python** | → bytecode (`.pyc`), done **automatically** inside `python.exe` | PVM runs it |
+
+Python and Java work the same way: **compile to bytecode, then a virtual machine runs it**. The difference is that Python hides the compile step. You only type `python hello.py`, so it *feels* like Python only interprets.
+
+> 💡 **Interview answer:** *"Python is both compiled and interpreted. CPython first compiles source code to bytecode, and then the PVM interprets that bytecode. We call it interpreted because the compile step is automatic and there is no separate build step."*
+
+### See every step with your own eyes
+```python
+import tokenize, io, ast, dis
+
+code = "x = 5 + 3\nprint(x)\n"
+
+# Step 2: tokens
+for tok in tokenize.generate_tokens(io.StringIO(code).readline):
+    print(tokenize.tok_name[tok.type], repr(tok.string))
+# NAME 'x'
+# OP '='
+# NUMBER '5'
+# OP '+'
+# NUMBER '3'
+# ...
+
+# Step 3: AST (tree)
+print(ast.dump(ast.parse("x = 5 + 3"), indent=2))
+# Module(
+#   body=[
+#     Assign(
+#       targets=[Name(id='x', ctx=Store())],
+#       value=BinOp(left=Constant(value=5), op=Add(), right=Constant(value=3)))],
+#   ...)
+
+# Step 4: compile to bytecode
+bytecode = compile(code, "<demo>", "exec")
+print(type(bytecode))    # <class 'code'>
+dis.dis(bytecode)
+#  1   LOAD_CONST   (8)      <- Python already calculated 5 + 3 = 8 at compile time!
+#      STORE_NAME   (x)
+#  2   LOAD_NAME    (print)
+#      ...
+
+# Step 6: PVM runs it
+exec(bytecode)           # 8
+```
+> 💡 Notice: the bytecode says `LOAD_CONST 8`, not `5 + 3`. The compiler does small optimizations like this (called **constant folding**).
+> Instruction names can be a little different in each Python version.
+
+### Where is the .pyc file?
+```
+my_project/
+├── main.py            <- you run this (its .pyc is NOT saved)
+├── helper.py          <- imported by main.py
+└── __pycache__/
+    └── helper.cpython-310.pyc   <- bytecode of helper.py (310 = Python 3.10)
+```
+- The `__pycache__` folder is safe to delete. Python creates it again.
+- That's why `__pycache__/` is in `.gitignore` — never push it to GitHub.
+
+### Compile time vs run time errors
+```python
+# SyntaxError -> caught by the PARSER, nothing runs, not even line 1
+print("start")
+if True print("hi")      # SyntaxError: invalid syntax
+
+# Runtime error -> caught by the PVM, lines before it DO run
+print("start")           # start  (this prints)
+print(10 / 0)            # ZeroDivisionError: division by zero
+```
+
+### Other Python implementations
+| Implementation | How it runs code |
+|---|---|
+| **CPython** | Default. Written in C. Bytecode + PVM (the flow above). |
+| **PyPy** | Uses a **JIT compiler**, which turns hot code into machine code. Often much faster for long-running programs. |
+| **Jython** | Runs Python on the Java Virtual Machine (JVM). |
+| **IronPython** | Runs Python on .NET. |
+
+### 🎯 Interview questions on execution flow
+**Q. What happens when you run a Python program?**
+Source code → tokenizer → parser (AST) → compiler → bytecode → PVM executes it → output.
+
+**Q. What is a .pyc file?**
+A file that stores compiled bytecode of an imported module, kept in `__pycache__`. It makes the next import faster. It is not machine code and it is specific to the Python version.
+
+**Q. Is bytecode the same as machine code?**
+No. Machine code runs directly on the CPU. Bytecode runs on the PVM, which is why it works on any OS.
+
+**Q. When do you get a SyntaxError vs a runtime error?**
+SyntaxError comes at compile time (parser), so the program never starts. Runtime errors come while the PVM is running the code, so earlier lines already ran.
+
+---
+
 ## 🎯 Interview Questions
 
 **Q1. Is Python compiled or interpreted?**
@@ -302,3 +468,5 @@ Guido van Rossum, started in December 1989 at CWI, Netherlands. Named after the 
 Automatically — by reference counting plus a garbage collector that removes reference cycles.
 
 ---
+
+Execution Flow of Python Program
