@@ -1114,3 +1114,208 @@ Yes — it gives `2`, because `bool` is a subclass of `int`. `True` is `1` and `
 | Saying `{}` creates an empty set | `{}` is an empty dict — use `set()` for an empty set              |
 | Saying Python has a `char` type  | It doesn't — a single character is just a string of length 1          |
 | Using `== None`                  | Always `is None` — PEP 8 says so, and it's faster                   |
+---
+
+## Variables in Python
+
+- A **variable** is a **name that points to a value** stored in memory.
+- Think of it as a **label** on an object, not a box containing the value.
+- Python is **dynamically typed** — you don't declare the type. Python figures it out from the value.
+- Variables are created the moment you first assign a value to them.
+
+```python
+x = 10           # creates a variable 'x' pointing to the integer 10
+name = "Ganesh"  # creates 'name' pointing to the string "Ganesh"
+```
+
+### How variables work internally
+In Python, a variable is a **name tag**, and the actual value is an **object** in memory.
+```python
+x = 10
+# Step 1: Python creates an integer object 10 in memory
+# Step 2: Python attaches the name 'x' to that object
+
+print(x)           # 10
+print(id(x))       # 140234567890  -> memory address of the object
+print(type(x))     # <class 'int'>  -> what type the object is
+```
+
+> 💡 In C, a variable is a **box** with a fixed size and type. In Python, a variable is a **label** stuck on an object — you can move the label to a different object anytime.
+
+### Rules for naming variables
+✅ **Allowed:**
+- Letters (a-z, A-Z), digits (0-9), and underscores `_`
+- Must **start with a letter or underscore** (not a digit)
+- Case-sensitive: `name`, `Name`, `NAME` are three different variables
+- No length limit
+
+❌ **Not allowed:**
+- Cannot start with a digit → `2name = 5` → SyntaxError
+- Cannot contain spaces or special characters → `my-name`, `my name` → SyntaxError
+- Cannot use a keyword → `class = "A"` → SyntaxError
+
+```python
+# Valid
+name = "Ganesh"
+_private = 10
+user_age = 25
+camelCase = 1       # works but not Pythonic
+userName123 = "ok"
+
+# Invalid
+# 2name = "no"       # SyntaxError: can't start with digit
+# my-name = "no"     # SyntaxError: '-' not allowed
+# class = "no"       # SyntaxError: keyword
+```
+
+### Naming conventions (PEP 8 — Python style guide)
+| Thing | Convention | Example |
+|---|---|---|
+| Variable, function | `snake_case` | `user_name`, `get_data()` |
+| Constant | `UPPER_SNAKE_CASE` | `PI`, `MAX_RETRIES`, `API_URL` |
+| Class | `PascalCase` | `UserAccount`, `AlarmClassifier` |
+| Private | `_leading_underscore` | `_internal_count` |
+| Avoid name clash with keyword | `trailing_underscore_` | `class_`, `type_` |
+| "Do not touch" | `__double_underscore` | `__secret` |
+
+> 💡 Good variable names make code read like English. `n = 10` is bad; `max_retries = 10` is good.
+
+### Dynamic typing
+The variable doesn't have a type — the **value** does. You can point the same variable to any type:
+```python
+v = 5          # v points to an int
+v = "hello"    # now v points to a string — perfectly legal
+v = [1, 2, 3]  # now v points to a list
+```
+This is powerful but can cause bugs. In production code I use **type hints** (`v: int = 5`) and a checker like `mypy`.
+
+### Multiple assignment
+```python
+# Assign different values at once
+a, b, c = 1, 2, 3
+print(a, b, c)         # 1 2 3
+
+# Assign the same value to many variables
+x = y = z = 100
+print(x, y, z)         # 100 100 100
+```
+
+### Swapping variables (very Pythonic!)
+```python
+a, b = 10, 20
+a, b = b, a            # no temp variable needed
+print(a, b)            # 20 10
+```
+
+### Unpacking
+```python
+# Unpack a list into variables
+first, second, third = [1, 2, 3]
+
+# Use * to catch the middle or extras
+first, *middle, last = [1, 2, 3, 4, 5]
+print(first, middle, last)   # 1 [2, 3, 4] 5
+
+# Ignore values with _
+name, _, age = ("Ganesh", "unused", 24)
+```
+
+### Variable scope (LEGB rule)
+Python looks up a variable in this order:
+- **L**ocal — inside the current function
+- **E**nclosing — any outer (enclosing) function
+- **G**lobal — at the top level of the module (file)
+- **B**uilt-in — Python's built-in names like `print`, `len`
+
+```python
+g = "global"
+
+def outer():
+    e = "enclosing"
+    def inner():
+        l = "local"
+        print(l, e, g)      # local enclosing global
+    inner()
+
+outer()
+```
+
+### Constants (by convention only)
+Python has **no real constants** — but by convention, uppercase names mean "don't change this":
+```python
+PI = 3.14159
+MAX_RETRIES = 3
+DATABASE_URL = "postgresql://..."
+```
+Nothing stops you from changing them, but other developers will know not to.
+
+### Mistakes I need to avoid
+- ❌ Using single letters for important variables (`n`, `x`, `d`) — use descriptive names
+- ❌ Naming variables after built-ins: `list`, `dict`, `type`, `id`, `sum`, `max`, `min`, `str`, `input`
+- ❌ Forgetting `global` inside a function when modifying a global variable
+- ❌ Assuming `a = b` copies a list — it doesn't, both names point to the same list!
+  ```python
+  a = [1, 2, 3]
+  b = a           # NOT a copy
+  b.append(4)
+  print(a)        # [1, 2, 3, 4]   -> a changed too!
+  # To copy: b = a.copy()  or  b = a[:]  or  b = list(a)
+  ```
+
+---
+
+## 🎯 Interview Questions on Variables
+
+**Q1. How do you declare a variable in Python?**
+You don't declare it — you just assign a value. `x = 10` creates the variable `x`. Python is dynamically typed, so you don't specify the type.
+
+**Q2. What are the rules for naming a variable in Python?**
+- Must start with a letter or underscore, not a digit
+- Can contain letters, digits, and underscores
+- Case-sensitive
+- Cannot be a Python keyword
+
+**Q3. What is the difference between a variable and a literal?**
+A **literal** is the actual value in the code (`10`, `"hello"`); a **variable** is the name that points to that value. In `x = 10`, `10` is the literal, `x` is the variable.
+
+**Q4. Explain the LEGB rule.**
+Python looks up a variable in four scopes in this order: **L**ocal → **E**nclosing → **G**lobal → **B**uilt-in. The first one found is used.
+
+**Q5. What happens with `a = b` when b is a list?**
+Both `a` and `b` now point to the **same list object** — it's not a copy. Modifying one changes the other. To copy, use `a = b.copy()` or `a = b[:]`.
+
+**Q6. Does Python have constants?**
+Not really. By convention, we use `UPPER_SNAKE_CASE` names (like `PI = 3.14`) to signal "don't change this", but nothing enforces it. For true immutability you can use a `@dataclass(frozen=True)` or a `NamedTuple`.
+
+**Q7. What is dynamic typing?**
+The type is attached to the **value**, not the **variable**. The same variable can point to an int, then a string, then a list. Python checks the type at runtime, so a type error only shows up when the code actually runs.
+
+---
+
+## 🗣️ How to Explain Variables in an Interview
+
+### ✅ Strong answer — "What is a variable in Python?" (30 seconds)
+> "A variable in Python is a **name that points to an object in memory**. Unlike C, where a variable is a box with a fixed type, in Python it's more like a **name tag** you stick on an object — you can move the tag to any other object anytime. That's why Python is called dynamically typed: `x = 10` and then `x = "hello"` is perfectly legal. Variables are created the moment you assign to them — no declaration needed."
+
+### 🎨 Analogy that works well
+> "Think of a variable as a **sticky note with a name written on it**, stuck on a box (the object). You can peel the sticky note off and stick it on a different box anytime. The box doesn't care what name is stuck on it, and multiple sticky notes can point to the same box."
+
+### 🔁 Likely follow-ups — be ready
+| Follow-up | Short answer |
+|---|---|
+| "What's the difference between `=` and `==`?" | `=` assigns; `==` compares values. |
+| "What is `is` vs `==`?" | `is` checks if two names point to the **same object**; `==` checks if the values are **equal**. |
+| "How do you copy a list?" | `b = a` doesn't copy — both point to the same list. Use `a.copy()`, `a[:]`, `list(a)`, or `copy.deepcopy(a)` for nested lists. |
+| "What is PEP 8 naming for variables?" | `snake_case` for variables and functions, `UPPER_SNAKE_CASE` for constants, `PascalCase` for classes. |
+| "What does `del x` do?" | Removes the name `x`. The object itself is garbage-collected when no name points to it. |
+
+### 🏭 Connect it to real work
+> "In my FastAPI project I follow PEP 8 strictly — `snake_case` for variables, `UPPER_SNAKE_CASE` for config constants like `DATABASE_URL`, and `PascalCase` for Pydantic model classes. I also use type hints on every variable I care about — `user_id: int = 0` — because mypy catches a lot of bugs that dynamic typing would otherwise let through until runtime."
+
+### ⚠️ Mistakes to avoid in your answer
+| Mistake | Fix |
+|---|---|
+| Saying "Python declares variables" | Python doesn't — you just assign |
+| Saying the variable has a type | The **object** has a type, not the variable |
+| Saying `a = b` makes a copy | It doesn't — both point to the same object |
+| Using `list`, `str`, `id` as variable names | These shadow built-ins and break them in the current scope |
